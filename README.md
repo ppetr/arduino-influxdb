@@ -29,6 +29,17 @@ advantage that Telegraf can buffer messages in the case the connection to the
 database fails, and also allows to collect monitoring data about the machine,
 which is generally a good thing for long-running systems.
 
+# Requirements
+
+- Python 2.7
+- Python libraries:
+  - [retrying](https://pypi.python.org/pypi/retrying)
+  - [pyserial](https://pypi.python.org/pypi/pyserial)
+
+On Debian these can be installed using
+
+    sudo apt-get install python-retrying python-serial
+
 # Contributions and future plans
 
 Welcome. Currently I'd like to add:

@@ -21,6 +21,10 @@ running on `localhost:8086` (the default value for `-H`). It also adds tag
 `location=foo` to each sample, in addition to the above `pin=A15` sent by
 Arduino.
 
+For detailed information about command line arguments run
+
+    python collect.py --help
+
 ## Running with Telegraf
 
 If the Influx database runs on a different machine, it might be helpful to run

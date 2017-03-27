@@ -35,8 +35,15 @@ class Sample(object):
 
         Raises ValueError if the line can't be parsed.
         """
-        self.timestamp = time.time()
-        (self.tags_line, self.values_line) = line.strip().split(" ")
+        words = line.strip().split(" ")
+        if len(words) == 2:
+            (self.tags_line, self.values_line) = words
+            self.timestamp = time.time()
+        elif len(words) == 3:
+            (self.tags_line, self.values_line, timestamp) = words
+            self.timestamp = float(timestamp) / 1000000000.0
+        else:
+            raise ValueError("Unable to parse line {0!r}".format(line))
 
     def AddTags(self, tag_line):
         if tag_line:

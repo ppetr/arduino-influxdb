@@ -113,7 +113,8 @@ def loop(args):
 def main():
     parser = argparse.ArgumentParser(
             description="Collects values from a serial port and sends them"
-                        " to InfluxDB")
+                        " to InfluxDB",
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-d', '--device', required=True,
                         help='serial device to read from')
     parser.add_argument('-r', '--baud-rate', type=int, default=9600,

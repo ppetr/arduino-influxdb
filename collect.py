@@ -98,13 +98,20 @@ def ProcessSamples(queue):
     for sample in queue:
         PostSamples([sample])
 
-@retry(wait_exponential_multiplier=1000, wait_exponential_max=60000)
-def main():
+def RetryOnIOError(exception):
+    return isinstance(exception, IOError)
+
+@retry(wait_exponential_multiplier=1000, wait_exponential_max=60000,
+       retry_on_exception=RetryOnIOError)
+def loop(args):
     try:
         ProcessSamples(LinesToSamples(SerialLines()))
     except:
         logging.exception("Error, retrying with backoff")
         raise
+
+def main():
+    loop()
 
 if __name__ == "__main__":
     main()

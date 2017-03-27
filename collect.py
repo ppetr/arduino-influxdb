@@ -20,12 +20,12 @@ limitations under the License.
 
 import argparse
 import logging
-from retrying import retry
-import serial
 import time
-
 import httplib
 import urllib
+
+from retrying import retry
+import serial
 
 class Sample(object):
     """Represents a single sample that is to be sent to the database."""

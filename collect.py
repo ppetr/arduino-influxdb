@@ -74,7 +74,7 @@ def SerialLines(args):
         SkipUntilNewLine(ser, args.max_line_length)
         while True:
             line = ser.readline(args.max_line_length)
-            logging.debug("Received line %s", repr(line))
+            logging.debug("Received line %r", line)
             if not line.endswith('\n'):
                 break
             yield line.rstrip()

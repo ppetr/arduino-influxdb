@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import logging
 from retrying import retry
 import serial
@@ -7,18 +8,6 @@ import time
 
 import httplib
 import urllib
-
-SERIAL = '/dev/ttyACM0'
-BAUDRATE = 9600
-READ_TIMEOUT = 60
-MAX_LINE_LENGTH = 1024
-
-INFLUX_HOST = 'localhost:8186'
-INFLUX_DB = 'plants'
-INFLUX_TAGS = {'location': 'luzna', 'board': 'raspberrypi'}
-
-_INFLUX_TAGS_LINE = ",".join(map(lambda (k, v): str(k) + "=" + str(v),
-                             INFLUX_TAGS.items()))
 
 class Sample(object):
     """Represents a single sample that is to be sent to the database."""
@@ -30,9 +19,12 @@ class Sample(object):
         """
         self.timestamp = time.time()
         (self.tags_line, self.values_line) = line.strip().split(" ")
-        if _INFLUX_TAGS_LINE:
+
+    def AddTags(self, tag_line):
+        if tag_line:
             self.tags_line += ","
-            self.tags_line += _INFLUX_TAGS_LINE
+            self.tags_line += tag_line
+        return self
 
     def FormatInfluxLine(self):
         return "{0} {1} {2:d}".format(
@@ -47,22 +39,23 @@ class Sample(object):
         return "{0}({1!r})".format(self.__class__.__name__,
                                    self.FormatInfluxLine())
 
-def SkipUntilNewLine(f):
+def SkipUntilNewLine(f, max_line_length):
     """Skips data until a new-line character is received.
     
     This is needed so that the first sample is read from a complete line.
     """
     logging.debug("Skipping until the end of a new line.")
-    while not f.readline(MAX_LINE_LENGTH).endswith('\n'):
+    while not f.readline(max_line_length).endswith('\n'):
         pass
 
-def SerialLines():
+def SerialLines(args):
     """A generator that yields lines from a configured serial line."""
     # TODO: Auto reconnect / recover from errors indefinitely.
-    with serial.Serial(port=SERIAL, baudrate=BAUDRATE, timeout=READ_TIMEOUT) as ser:
-        SkipUntilNewLine(ser)
+    with serial.Serial(port=args.device, baudrate=args.baud_rate,
+                       timeout=args.read_timeout) as ser:
+        SkipUntilNewLine(ser, args.max_line_length)
         while True:
-            line = ser.readline(MAX_LINE_LENGTH)
+            line = ser.readline(args.max_line_length)
             logging.debug("Received line %s", repr(line))
             if not line.endswith('\n'):
                 break
@@ -76,14 +69,20 @@ def LinesToSamples(lines):
         except ValueError:
             logging.exception("Failed to parse Sample from '%s'", sample)
 
-def PostSamples(samples):
+def AddTags(args, samples):
+    """Adds tags from command line arguments to every sample."""
+    for sample in samples:
+        sample.AddTags(args.tags)
+        yield sample
+
+def PostSamples(args, samples):
     """Sends a list of samples to the configured influxdb database."""
     logging.debug("Sending samples: %s", samples)
-    params = urllib.urlencode({'db': INFLUX_DB, 'precision': 'ns'})
+    params = urllib.urlencode({'db': args.database, 'precision': 'ns'})
     headers = {}
     body = '\n'.join([sample.FormatInfluxLine() for sample in samples]) + '\n'
     try:
-        conn = httplib.HTTPConnection(INFLUX_HOST)
+        conn = httplib.HTTPConnection(args.host)
         conn.request("POST", "/write?" + params, body=body, headers=headers)
         response = conn.getresponse()
         if int(response.status) / 100 != 2:
@@ -93,10 +92,10 @@ def PostSamples(samples):
     except IOError:
         logging.exception("Failed to send samples %s", samples)
 
-def ProcessSamples(queue):
+def ProcessSamples(args, queue):
     """Processes a queue, whose elements are lists of samples."""
     for sample in queue:
-        PostSamples([sample])
+        PostSamples(args, [sample])
 
 def RetryOnIOError(exception):
     return isinstance(exception, IOError)
@@ -104,14 +103,41 @@ def RetryOnIOError(exception):
 @retry(wait_exponential_multiplier=1000, wait_exponential_max=60000,
        retry_on_exception=RetryOnIOError)
 def loop(args):
+    """Main loop that retries automatically on IO errors."""
     try:
-        ProcessSamples(LinesToSamples(SerialLines()))
+        ProcessSamples(args, AddTags(args, LinesToSamples(SerialLines(args))))
     except:
         logging.exception("Error, retrying with backoff")
         raise
 
 def main():
-    loop()
+    parser = argparse.ArgumentParser(
+            description="Collects values from a serial port and sends them"
+                        " to InfluxDB")
+    parser.add_argument('-d', '--device', required=True,
+                        help='serial device to read from')
+    parser.add_argument('-r', '--baud-rate', type=int, default=9600,
+                        help='baud rate of the serial device')
+    parser.add_argument('--read-timeout', type=int, default=60,
+                        help='read timeout on the serial device')
+    parser.add_argument('--max-line-length', type=int, default=1024,
+                        help='maximum line length')
+
+    parser.add_argument('-H', '--host', default='localhost:8086',
+                        help='host and port with InfluxDB to send data to')
+    parser.add_argument('-D', '--database', required=True,
+                        help='database to save data to')
+    parser.add_argument('-T', '--tags', default='',
+                        help='additional static tags for measurements'
+                             ' separated by comma, for example foo=x,bar=y')
+
+    parser.add_argument('--debug', action='store_true',
+                        help='enable debug level')
+    args = parser.parse_args()
+
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    loop(args)
 
 if __name__ == "__main__":
     main()

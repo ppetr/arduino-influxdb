@@ -46,31 +46,33 @@ class Sample(object):
             raise ValueError("Unable to parse line {0!r}".format(line))
 
     def AddTags(self, tag_line):
+        """Adds tags from 'tag_line' into 'self.tags_line'."""
         if tag_line:
             self.tags_line += ","
             self.tags_line += tag_line
         return self
 
     def FormatInfluxLine(self):
+        """Formats the accumulated tags and values into an InfluxDB line."""
         return "{0} {1} {2:d}".format(
-                self.tags_line, self.values_line, long(self.timestamp * 1000000000))
+            self.tags_line, self.values_line, long(self.timestamp * 1000000000))
 
     def __str__(self):
         return '{0}(tags_line={1},values_line={2},timestamp={3})'.format(
-                self.__class__.__name__, self.tags_line, self.values_line,
-                self.timestamp)
+            self.__class__.__name__, self.tags_line, self.values_line,
+            self.timestamp)
 
     def __repr__(self):
         return "{0}({1!r})".format(self.__class__.__name__,
                                    self.FormatInfluxLine())
 
-def SkipUntilNewLine(f, max_line_length):
+def SkipUntilNewLine(handle, max_line_length):
     """Skips data until a new-line character is received.
-    
+
     This is needed so that the first sample is read from a complete line.
     """
     logging.debug("Skipping until the end of a new line.")
-    while not f.readline(max_line_length).endswith('\n'):
+    while not handle.readline(max_line_length).endswith('\n'):
         pass
 
 def SerialLines(args):
@@ -92,7 +94,7 @@ def LinesToSamples(lines):
         try:
             yield Sample(line)
         except ValueError:
-            logging.exception("Failed to parse Sample from '%s'", sample)
+            logging.exception("Failed to parse Sample from '%s'", line)
 
 def AddTags(args, samples):
     """Adds tags from command line arguments to every sample."""
@@ -123,11 +125,12 @@ def ProcessSamples(args, queue):
         PostSamples(args, [sample])
 
 def RetryOnIOError(exception):
+    """Returns True if 'exception' is an IOError."""
     return isinstance(exception, IOError)
 
 @retry(wait_exponential_multiplier=1000, wait_exponential_max=60000,
        retry_on_exception=RetryOnIOError)
-def loop(args):
+def Loop(args):
     """Main loop that retries automatically on IO errors."""
     try:
         ProcessSamples(args, AddTags(args, LinesToSamples(SerialLines(args))))
@@ -136,10 +139,11 @@ def loop(args):
         raise
 
 def main():
+    """Parses the command line arguments and invokes the main loop."""
     parser = argparse.ArgumentParser(
-            description="Collects values from a serial port and sends them"
-                        " to InfluxDB",
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        description="Collects values from a serial port and sends them"
+                    " to InfluxDB",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-d', '--device', required=True,
                         help='serial device to read from')
     parser.add_argument('-r', '--baud-rate', type=int, default=9600,
@@ -163,7 +167,7 @@ def main():
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
-    loop(args)
+    Loop(args)
 
 if __name__ == "__main__":
     main()

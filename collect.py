@@ -75,8 +75,18 @@ def SkipUntilNewLine(handle, max_line_length):
     while not handle.readline(max_line_length).endswith('\n'):
         pass
 
+class LineOverflowError(Exception):
+    """Thrown when a line longer than args.max_line_length is received."""
+    def __init__(self, line):
+        super(LineOverflowError, self).__init__(
+            "Received incomplete line {0!r}".format(line))
+
 def SerialLines(args):
-    """A generator that yields lines from a configured serial line."""
+    """A generator that yields lines from a configured serial line.
+
+    Will never exit normally, only with an exception when there is an error
+    in the serial communication.
+    """
     # TODO: Auto reconnect / recover from errors indefinitely.
     with serial.Serial(port=args.device, baudrate=args.baud_rate,
                        timeout=args.read_timeout) as ser:
@@ -85,7 +95,7 @@ def SerialLines(args):
             line = ser.readline(args.max_line_length)
             logging.debug("Received line %r", line)
             if not line.endswith('\n'):
-                break
+                raise LineOverflowError(line)
             yield line.rstrip()
 
 def LinesToSamples(lines):

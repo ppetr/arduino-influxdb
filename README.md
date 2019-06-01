@@ -35,12 +35,13 @@ which is generally a good thing for long-running systems.
 
 # Requirements
 
-- Python 2.7
+- Python 2.7+
 - Python libraries:
   - [retrying](https://pypi.python.org/pypi/retrying)
   - [pyserial](https://pypi.python.org/pypi/pyserial)
+  - [persistent-queue-log](https://github.com/ppetr/persistent-queue-log)
 
-On Debian these can be installed using
+On Debian the first rwo can be installed using
 
     sudo apt-get install python-retrying python-serial
 

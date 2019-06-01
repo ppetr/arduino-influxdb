@@ -1,138 +1,31 @@
 #!/usr/bin/env python
-"""
-Reads data from a serial device, typically Arduino, in InfluxDB's
-line protocol format and forwards it into an Influx database.
 
-Copyright 2017 Petr Pudlak
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
+# Copyright 2017 Petr Pudlak
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Forwards data from a serial device to an InflixDB database."""
 
 import argparse
 import logging
-import time
-import httplib
-import urllib
+import sys
+import threading
 
 from retrying import retry
-import serial
+ 
+import influxdb
+import persistent_queue
+import serial_samples
 
-class Sample(object):
-    """Represents a single sample that is to be sent to the database."""
-
-    def __init__(self, line):
-        """Parses a given line and stores in a new Sample.
-
-        Raises ValueError if the line can't be parsed.
-        """
-        words = line.strip().split(" ")
-        if len(words) == 2:
-            (self.tags_line, self.values_line) = words
-            self.timestamp = time.time()
-        elif len(words) == 3:
-            (self.tags_line, self.values_line, timestamp) = words
-            self.timestamp = float(timestamp) / 1000000000.0
-        else:
-            raise ValueError("Unable to parse line {0!r}".format(line))
-
-    def AddTags(self, tag_line):
-        """Adds tags from 'tag_line' into 'self.tags_line'."""
-        if tag_line:
-            self.tags_line += ","
-            self.tags_line += tag_line
-        return self
-
-    def FormatInfluxLine(self):
-        """Formats the accumulated tags and values into an InfluxDB line."""
-        return "{0} {1} {2:d}".format(
-            self.tags_line, self.values_line, long(self.timestamp * 1000000000))
-
-    def __str__(self):
-        return '{0}(tags_line={1},values_line={2},timestamp={3})'.format(
-            self.__class__.__name__, self.tags_line, self.values_line,
-            self.timestamp)
-
-    def __repr__(self):
-        return "{0}({1!r})".format(self.__class__.__name__,
-                                   self.FormatInfluxLine())
-
-def SkipUntilNewLine(handle, max_line_length):
-    """Skips data until a new-line character is received.
-
-    This is needed so that the first sample is read from a complete line.
-    """
-    logging.debug("Skipping until the end of a new line.")
-    while not handle.readline(max_line_length).endswith('\n'):
-        pass
-
-class LineOverflowError(Exception):
-    """Thrown when a line longer than args.max_line_length is received."""
-    def __init__(self, line):
-        super(LineOverflowError, self).__init__(
-            "Received incomplete line {0!r}".format(line))
-
-def SerialLines(args):
-    """A generator that yields lines from a configured serial line.
-
-    Will never exit normally, only with an exception when there is an error
-    in the serial communication.
-    """
-    # TODO: Auto reconnect / recover from errors indefinitely.
-    with serial.Serial(port=args.device, baudrate=args.baud_rate,
-                       timeout=args.read_timeout) as ser:
-        SkipUntilNewLine(ser, args.max_line_length)
-        while True:
-            line = ser.readline(args.max_line_length)
-            logging.debug("Received line %r", line)
-            if not line.endswith('\n'):
-                raise LineOverflowError(line)
-            yield line.rstrip()
-
-def LinesToSamples(lines):
-    """Converts each input line into a Sample."""
-    for line in lines:
-        try:
-            yield Sample(line)
-        except ValueError:
-            logging.exception("Failed to parse Sample from '%s'", line)
-
-def AddTags(args, samples):
-    """Adds tags from command line arguments to every sample."""
-    for sample in samples:
-        sample.AddTags(args.tags)
-        yield sample
-
-def PostSamples(args, samples):
-    """Sends a list of samples to the configured influxdb database."""
-    logging.debug("Sending samples: %s", samples)
-    params = urllib.urlencode({'db': args.database, 'precision': 'ns'})
-    headers = {}
-    body = '\n'.join([sample.FormatInfluxLine() for sample in samples]) + '\n'
-    try:
-        conn = httplib.HTTPConnection(args.host)
-        conn.request("POST", "/write?" + params, body=body, headers=headers)
-        response = conn.getresponse()
-        if int(response.status) / 100 != 2:
-            logging.error("Sending samples %s failed: %s, %s, %s: %s",
-                          samples, response.status, response.reason, params,
-                          body)
-    except IOError:
-        logging.exception("Failed to send samples %s", samples)
-
-def ProcessSamples(args, queue):
-    """Processes a queue, whose elements are lists of samples."""
-    for sample in queue:
-        PostSamples(args, [sample])
 
 def RetryOnIOError(exception):
     """Returns True if 'exception' is an IOError."""
@@ -140,13 +33,38 @@ def RetryOnIOError(exception):
 
 @retry(wait_exponential_multiplier=1000, wait_exponential_max=60000,
        retry_on_exception=RetryOnIOError)
-def Loop(args):
-    """Main loop that retries automatically on IO errors."""
+def ReadLoop(args, queue):
+    """Reads samples and stores them in a queue. Retries on IO errors."""
     try:
-        ProcessSamples(args, AddTags(args, LinesToSamples(SerialLines(args))))
+        logging.debug("Read loop started")
+        for sample in serial_samples.SerialLines(args.device, args.baud_rate,
+                                                 args.read_timeout,
+                                                 args.max_line_length):
+            sample.AddTags(args.tags)
+            queue.put(sample.FormatInfluxLine())
     except:
         logging.exception("Error, retrying with backoff")
         raise
+
+
+@retry(wait_exponential_multiplier=1000, wait_exponential_max=60000,
+       retry_on_exception=RetryOnIOError)
+def WriteLoop(args, queue):
+    """Reads samples and stores them in a queue. Retries on IO errors."""
+    logging.debug("Write loop started")
+    try:
+        for influxdb_line in queue.get_blocking(tick=60):
+            influxdb.PostSamples(args.database, args.host, [influxdb_line])
+    except:
+        logging.exception("Error, retrying with backoff")
+        raise
+
+def RunAndDie(fn, *args):
+    """Runs 'fn' on 'args'. If 'fn' exists, exit the whole program."""
+    try:
+        fn(*args)
+    finally:
+        sys.exit(1)
 
 def main():
     """Parses the command line arguments and invokes the main loop."""
@@ -171,13 +89,28 @@ def main():
                         help='additional static tags for measurements'
                              ' separated by comma, for example foo=x,bar=y')
 
+    parser.add_argument('-q', '--queue', default=':memory:',
+                        help='path for a persistent queue database file')
+    parser.add_argument('-w', '--wal_autocheckpoint', type=int, default=10,
+                        help='switches the queue SQLite database to use the WAL '
+                              'mode and sets this parameter in the database')
+
     parser.add_argument('--debug', action='store_true',
                         help='enable debug level')
     args = parser.parse_args()
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
-    Loop(args)
+    with persistent_queue.Queue(args.queue, wal_autocheckpoint=
+            args.wal_autocheckpoint) as queue:
+        reader = threading.Thread(name="read", target=RunAndDie,
+                                  args=(ReadLoop, args, queue))
+        writer = threading.Thread(name="write", target=RunAndDie,
+                                  args=(WriteLoop, args, queue))
+        reader.start()
+        writer.start()
+        reader.join()
+        writer.join()
 
 if __name__ == "__main__":
     main()

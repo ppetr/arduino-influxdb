@@ -83,14 +83,14 @@ class LineOverflowError(IOError):
         super(LineOverflowError, self).__init__(
             "Received incomplete line {0!r}".format(line))
 
-def SerialLines(device, baud_rate, read_timeout, max_line_length):
+def SerialLines(device_url, baud_rate, read_timeout, max_line_length):
     """A generator that yields lines from a configured serial line.
 
     Will never exit normally, only with an exception when there is an error
     in the serial communication.
     """
-    with serial.Serial(port=device, baudrate=baud_rate,
-                       timeout=read_timeout) as handle:
+    with serial.serial_for_url(device_url, baudrate=baud_rate,
+                               timeout=read_timeout) as handle:
         SkipUntilNewLine(handle)
         while True:
             line = handle.readline(max_line_length)

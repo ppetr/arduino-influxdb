@@ -69,11 +69,19 @@ def RunAndDie(fn, *args):
 def main():
     """Parses the command line arguments and invokes the main loop."""
     parser = argparse.ArgumentParser(
-        description="Collects values from a serial port and sends them"
-                    " to InfluxDB",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description="""
+          Collects values from a serial port and sends them to InfluxDB.
+        """,
+        epilog="""See
+          https://pyserial.readthedocs.io/en/latest/url_handlers.html#urls
+          for URL types accepted by -d/--device.
+          Run `python -m serial.tools.list_ports` to list of all available
+          COM ports.
+        """)
     parser.add_argument('-d', '--device', required=True,
-                        help='serial device to read from')
+                        help='serial device to read from, or a URL accepted '
+                             'by serial_for_url()')
     parser.add_argument('-r', '--baud-rate', type=int, default=9600,
                         help='baud rate of the serial device')
     parser.add_argument('--read-timeout', type=int, default=60,

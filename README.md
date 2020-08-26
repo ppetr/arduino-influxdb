@@ -1,10 +1,14 @@
-# Purpose
+# Script to collect data from Arduino into InfluxDB
+
+_Disclaimer: This is not an official Google product._
+
+## Purpose
 
 This script reads data from a serial device, typically Arduino, in InfluxDB's
 [line protocol](https://docs.influxdata.com/influxdb/v1.2/write_protocols/line_protocol_tutorial/)
 format and forwards it into an Influx database.
 
-# Usage
+## Usage
 
 Write an Arduino program that sends data in InfluxDB's format on the serial
 line without timestamps (which are generally unavailable on Arduino). For
@@ -25,7 +29,7 @@ For detailed information about command line arguments run
 
     python collect.py --help
 
-## Running with Telegraf
+### Running with Telegraf
 
 If the Influx database runs on a different machine, it might be helpful to run
 [Telegraf](https://docs.influxdata.com/telegraf/v1.2/) locally. This has the
@@ -33,7 +37,7 @@ advantage that Telegraf can buffer messages in the case the connection to the
 database fails, and also allows to collect monitoring data about the machine,
 which is generally a good thing for long-running systems.
 
-# Requirements
+## Requirements
 
 - Python 2.7+
 - Python libraries:
@@ -45,9 +49,10 @@ On Debian the first rwo can be installed using
 
     sudo apt-get install python-retrying python-serial
 
-# Contributions and future plans
+## Contributions and future plans
 
-Welcome. Currently I'd like to add:
+Contributions welcome, please see [Code of Conduct](docs/code-of-conduct.md)
+and [Contributing](docs/contributing.md). Currently I'd like to add:
 
 - Packaging for Debian/Ubuntu.
-- Add an option for running the script as a proper daemon.
+- An option for running the script as a proper Linux daemon.

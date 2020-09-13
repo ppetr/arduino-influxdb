@@ -79,9 +79,15 @@ def SkipUntilNewLine(handle):
 
 class LineOverflowError(IOError):
     """Thrown when a line longer than a given limit is received."""
-    def __init__(self, line):
-        super(LineOverflowError, self).__init__(
-            "Received incomplete line {0!r}".format(line))
+    def __init__(self, line, max_line_length):
+        if not line:
+            message = "Timeout on device inactivity, no data received"
+        elif len(line) >= max_line_length:
+            message = "Read line overflow: {0!r}".format(line)
+        else:
+            message = "Read timeout; received incomplete line: {0!r}".format(
+                line)
+        super(LineOverflowError, self).__init__(message)
 
 def SerialLines(device_url, baud_rate, read_timeout, max_line_length):
     """A generator that yields lines from a configured serial line.
@@ -96,7 +102,7 @@ def SerialLines(device_url, baud_rate, read_timeout, max_line_length):
             line = handle.readline(max_line_length)
             logging.debug("Received line %r", line)
             if not line.endswith('\n'):
-                raise LineOverflowError(line)
+                raise LineOverflowError(line, max_line_length)
             try:
                 yield Sample(line.rstrip())
             except ValueError:

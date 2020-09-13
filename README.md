@@ -54,5 +54,6 @@ On Debian the first rwo can be installed using
 Contributions welcome, please see [Code of Conduct](docs/code-of-conduct.md)
 and [Contributing](docs/contributing.md). Currently I'd like to add:
 
+- Thorough, proper testing.
 - Packaging for Debian/Ubuntu.
 - An option for running the script as a proper Linux daemon.

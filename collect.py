@@ -72,6 +72,14 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="""
           Collects values from a serial port and sends them to InfluxDB.
+
+          Note that the first received line is discarded to prevent recording
+          incomplete data.
+
+          Make sure to set READ_TIMEOUT higher than the longest expected
+          period of inactivity of your device. For example, if your device
+          sends data every 60 seconds, set --read-timeout=70 (or any similar
+          value >60s).
         """,
         epilog="""See
           https://pyserial.readthedocs.io/en/latest/url_handlers.html#urls
@@ -84,8 +92,10 @@ def main():
                              'by serial_for_url()')
     parser.add_argument('-r', '--baud-rate', type=int, default=9600,
                         help='baud rate of the serial device')
-    parser.add_argument('--read-timeout', type=int, default=60,
-                        help='read timeout on the serial device')
+    parser.add_argument('-t', '--read-timeout', type=int, required=True,
+                        help='read timeout on the serial device; this should '
+                             'be longer that the longest expected period of '
+                             'inactivity of the serial device')
     parser.add_argument('--max-line-length', type=int, default=1024,
                         help='maximum line length')
 

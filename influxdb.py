@@ -21,10 +21,14 @@ import urllib
 
 class InfluxdbError(IOError):
     """Thrown when posting to an InfluxDB database fails."""
-    def __init__(self, params, body, response):
+    def __init__(self, params, request_body, response):
+        # Read the start of the response and include it in the error.
+        response_body = response.read(8192)
         super(InfluxdbError, self).__init__(
-            "Request failed (status='{}', reason='{}', params='{}'): {}".format(
-            response.status, response.reason, params, body))
+            "Request failed (status='{}', reason='{}', response='{}', "
+            "params='{}'): {}".format(
+                response.status, response.reason, response_body, params,
+                request_body))
 
 def PostSamples(database, host, lines):
     """Sends a list of lines to a given InfluxDB database.

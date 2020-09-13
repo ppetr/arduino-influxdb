@@ -30,7 +30,7 @@ class InfluxdbError(IOError):
                 response.status, response.reason, response_body, params,
                 request_body))
 
-def PostSamples(database, host, lines):
+def PostSamples(database, host, warn_on_status, lines):
     """Sends a list of lines to a given InfluxDB database.
 
     Args:
@@ -46,5 +46,10 @@ def PostSamples(database, host, lines):
     body = '\n'.join(lines) + '\n'
     conn.request("POST", "/write?" + params, body=body, headers={})
     response = conn.getresponse()
-    if int(response.status) / 100 != 2:
-        raise InfluxdbError(params, body, response)
+    status = int(response.status)
+    if status / 100 != 2:
+        error = InfluxdbError(params, body, response)
+        if status in warn_on_status:
+            logging.warning(error)
+        else:
+            raise error

@@ -52,9 +52,11 @@ def ReadLoop(args, queue):
 def WriteLoop(args, queue):
     """Reads samples and stores them in a queue. Retries on IO errors."""
     logging.debug("Write loop started")
+    warn_on_status = frozenset(int(status) for status in args.warn_on_status)
     try:
         for influxdb_line in queue.get_blocking(tick=60):
-            influxdb.PostSamples(args.database, args.host, [influxdb_line])
+            influxdb.PostSamples(args.database, args.host, warn_on_status,
+                                 [influxdb_line])
     except:
         logging.exception("Error, retrying with backoff")
         raise
@@ -106,6 +108,11 @@ def main():
     parser.add_argument('-T', '--tags', default='',
                         help='additional static tags for measurements'
                              ' separated by comma, for example foo=x,bar=y')
+    parser.add_argument('--warn_on_status', nargs='*', default=[400],
+                        help='when one of these HTTP statuses is received from'
+                             ' InfluxDB, a warning is printed and the'
+                             ' datapoint is skipped; allows to continue on'
+                             ' invalid datapoints')
 
     parser.add_argument('-q', '--queue', default=':memory:',
                         help='path for a persistent queue database file')

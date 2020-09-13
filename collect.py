@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
 # Copyright 2020 Google LLC
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,7 +21,7 @@ import sys
 import threading
 
 from retrying import retry
- 
+
 import influxdb
 import persistent_queue
 import serial_samples
@@ -59,10 +59,10 @@ def WriteLoop(args, queue):
         logging.exception("Error, retrying with backoff")
         raise
 
-def RunAndDie(fn, *args):
+def RunAndDie(fun, *args):
     """Runs 'fn' on 'args'. If 'fn' exists, exit the whole program."""
     try:
-        fn(*args)
+        fun(*args)
     finally:
         sys.exit(1)
 
@@ -100,8 +100,8 @@ def main():
     parser.add_argument('-q', '--queue', default=':memory:',
                         help='path for a persistent queue database file')
     parser.add_argument('-w', '--wal_autocheckpoint', type=int, default=10,
-                        help='switches the queue SQLite database to use the WAL '
-                              'mode and sets this parameter in the database')
+                        help='switches the queue SQLite database to use the '
+                             'WAL mode and sets this parameter in the database')
 
     parser.add_argument('--debug', action='store_true',
                         help='enable debug level')
@@ -109,8 +109,8 @@ def main():
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
-    with persistent_queue.Queue(args.queue, wal_autocheckpoint=
-            args.wal_autocheckpoint) as queue:
+    with persistent_queue.Queue(
+        args.queue, wal_autocheckpoint=args.wal_autocheckpoint) as queue:
         reader = threading.Thread(name="read", target=RunAndDie,
                                   args=(ReadLoop, args, queue))
         writer = threading.Thread(name="write", target=RunAndDie,

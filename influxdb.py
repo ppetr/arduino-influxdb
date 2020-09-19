@@ -15,8 +15,8 @@
 """Posts a series of lines in an InfluxDB database."""
 
 import logging
-import httplib
-import urllib
+import http.client
+import urllib.parse
 
 
 class InfluxdbError(IOError):
@@ -41,8 +41,8 @@ def PostSamples(database, host, warn_on_status, lines):
         IOError when connection to the database fails.
     """
     logging.debug("Sending lines: %s", lines)
-    params = urllib.urlencode({'db': database, 'precision': 'ns'})
-    conn = httplib.HTTPConnection(host)
+    params = urllib.parse.urlencode({'db': database, 'precision': 'ns'})
+    conn = http.client.HTTPConnection(host)
     body = '\n'.join(lines) + '\n'
     conn.request("POST", "/write?" + params, body=body, headers={})
     response = conn.getresponse()

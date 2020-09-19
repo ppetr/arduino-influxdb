@@ -57,7 +57,7 @@ class Sample(object):
     def FormatInfluxLine(self):
         """Formats the accumulated tags and values into an InfluxDB line."""
         return "{0} {1} {2:d}".format(
-            self.tags_line, self.values_line, long(self.timestamp * 1000000000))
+            self.tags_line, self.values_line, int(self.timestamp * 1000000000))
 
     def __str__(self):
         return '{0}(tags_line={1},values_line={2},timestamp={3})'.format(

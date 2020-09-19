@@ -18,7 +18,7 @@ example:
 
 Prepare an Influx database where you want to store the data. Then run:
 
-    python collect.py -d /dev/ttyUSB0 -H localhost:8086 -D plants -T location=foo
+    python3 collect.py -d /dev/ttyUSB0 -H localhost:8086 -D plants -T location=foo
 
 This reads data from `/dev/ttyUSB0` and writes them to the database `plants`
 running on `localhost:8086` (the default value for `-H`). It also adds tag
@@ -27,7 +27,7 @@ Arduino.
 
 For detailed information about command line arguments run
 
-    python collect.py --help
+    python3 collect.py --help
 
 ### Running with Telegraf
 
@@ -39,7 +39,7 @@ which is generally a good thing for long-running systems.
 
 ## Requirements
 
-- Python 2.7+
+- **Python 3.5+**
 - Python libraries:
   - [retrying](https://pypi.python.org/pypi/retrying)
   - [pyserial](https://pypi.python.org/pypi/pyserial)
@@ -47,7 +47,7 @@ which is generally a good thing for long-running systems.
 
 On Debian the first rwo can be installed using
 
-    sudo apt-get install python-retrying python-serial
+    sudo apt-get install python3-retrying python3-serial
 
 ## Contributions and future plans
 

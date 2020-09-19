@@ -4,9 +4,14 @@ python:
   - "3.6"
   - "3.7"
   - "3.8"
+before_install:
+  - python --version
+  - pip install -U pip
+  - pip install -U pytest
 install:
   - pip install apsw retrying serial
   - git clone https://github.com/ppetr/persistent-queue-log.git
   - ln -s persistent-queue-log/persistent_queue.py .
 script:
   - python collect.py --help
+  - pytest

@@ -41,7 +41,7 @@ def PostSamples(database, host, warn_on_status, lines):
         IOError when connection to the database fails.
     """
     logging.debug("Sending lines: %s", lines)
-    params = urllib.parse.urlencode({'db': database, 'precision': 'ns'})
+    params = urllib.parse.urlencode([('db', database), ('precision', 'ns')])
     conn = http.client.HTTPConnection(host)
     body = '\n'.join(lines) + '\n'
     conn.request("POST", "/write?" + params, body=body, headers={})

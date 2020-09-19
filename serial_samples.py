@@ -24,7 +24,7 @@ import time
 import serial
 
 
-class Sample(object):
+class Sample:
     """Represents a single sample in the InfluxDB format."""
 
     def __init__(self, line):
@@ -87,7 +87,7 @@ class LineOverflowError(IOError):
         else:
             message = "Read timeout; received incomplete line: {0!r}".format(
                 line)
-        super(LineOverflowError, self).__init__(message)
+        super().__init__(message)
 
 def SerialLines(device_url, baud_rate, read_timeout, max_line_length):
     """A generator that yields lines from a configured serial line.

@@ -7,11 +7,12 @@ python:
 before_install:
   - python --version
   - pip install -U pip
-  - pip install -U pytest
+  - pip install pytest pytest-pylint
 install:
-  - pip install apsw retrying serial
+  - pip install apsw retrying 'pyserial>=2.5'
   - git clone https://github.com/ppetr/persistent-queue-log.git
   - ln -s persistent-queue-log/persistent_queue.py .
+  - pip freeze
 script:
   - python collect.py --help
-  - pytest
+  - pytest --pylint --pylint-rcfile=pylintrc

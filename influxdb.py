@@ -24,7 +24,7 @@ class InfluxdbError(IOError):
     def __init__(self, params, request_body, response):
         # Read the start of the response and include it in the error.
         response_body = response.read(8192)
-        super(InfluxdbError, self).__init__(
+        super().__init__(
             "Request failed (status='{}', reason='{}', response='{}', "
             "params='{}'): {}".format(
                 response.status, response.reason, response_body, params,

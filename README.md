@@ -41,7 +41,7 @@ which is generally a good thing for long-running systems.
 
 ## Requirements
 
-- **Python 3.5+**
+- **Python 3.6+**
 - Python libraries:
   - [retrying](https://pypi.python.org/pypi/retrying)
   - [pyserial](https://pypi.python.org/pypi/pyserial)

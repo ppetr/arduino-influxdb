@@ -39,6 +39,10 @@ advantage that Telegraf can buffer messages in the case the connection to the
 database fails, and also allows to collect monitoring data about the machine,
 which is generally a good thing for long-running systems.
 
+Keep in mind that Telegraph only allows posting data to a single database, the
+one configured in Section `[[outputs.influxdb]]`. It ignores the database name
+passed to it by `collect.py` (or any other script).
+
 ## Requirements
 
 - **Python 3.6+**

@@ -45,9 +45,12 @@ which is generally a good thing for long-running systems.
 - Python libraries:
   - [retrying](https://pypi.python.org/pypi/retrying)
   - [pyserial](https://pypi.python.org/pypi/pyserial)
-  - [persistent-queue-log](https://github.com/ppetr/persistent-queue-log)
+  - [persistent-queue-log](https://github.com/ppetr/persistent-queue-log) -
+    included as a
+    [submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules); just
+    clone this repository with `--recurse-submodules`.
 
-On Debian the first rwo can be installed using
+On Debian the first two can be installed using
 
     sudo apt-get install python3-retrying python3-serial
 

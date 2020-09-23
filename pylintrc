@@ -12,7 +12,7 @@ profile=no
 
 # Add files or directories to the ignore list. They should be base names, not
 # paths.
-ignore=CVS,persistent-queue-log,persistent_queue.py
+ignore=CVS,persistent_queue
 
 # Pickle collected data for later comparisons.
 persistent=yes

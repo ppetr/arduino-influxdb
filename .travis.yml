@@ -1,6 +1,6 @@
 language: python
 env:
-  - PYLINT_ARGS="--pylint --pylint-rcfile=pylintrc"
+  - PYLINT_ARGS="--pylint"
 matrix:
   include:
     - python: 3.6
@@ -14,8 +14,6 @@ before_install:
   - pip install pytest pytest-pylint
 install:
   - pip install apsw retrying 'pyserial>=2.5'
-  - git clone https://github.com/ppetr/persistent-queue-log.git
-  - ln -s persistent-queue-log/persistent_queue.py .
   - pip freeze
 script:
   - python collect.py --help

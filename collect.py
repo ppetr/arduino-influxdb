@@ -23,7 +23,7 @@ import threading
 from retrying import retry
 
 import influxdb
-import persistent_queue
+from persistent_queue import persistent_queue
 import serial_samples
 
 

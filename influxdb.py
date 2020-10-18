@@ -47,7 +47,7 @@ def PostSamples(database, host, warn_on_status, lines):
     conn.request("POST", "/write?" + params, body=body, headers={})
     response = conn.getresponse()
     status = int(response.status)
-    if status / 100 != 2:
+    if status // 100 != 2:
         error = InfluxdbError(params, body, response)
         if status in warn_on_status:
             logging.warning(error)

@@ -16,6 +16,7 @@
 """Forwards data from a serial device to an InfluxDB database."""
 
 import argparse
+import importlib
 import logging
 import sys
 import threading
@@ -37,11 +38,17 @@ def RetryOnIOError(exception):
        retry_on_exception=RetryOnIOError)
 def ReadLoop(args, queue):
     """Reads samples and stores them in a queue. Retries on IO errors."""
+    if args.serial_function:
+        module, fn_name = args.serial_function.rsplit(".", 1)
+        serial_fn = getattr(importlib.import_module(module), fn_name)
     try:
         logging.debug("Read loop started")
         with serial.serial_for_url(args.device, baudrate=args.baud_rate,
                                    timeout=args.read_timeout) as handle:
-            lines = serial_samples.SerialLines(handle, args.max_line_length)
+            if serial_fn:
+                lines = serial_fn(handle)
+            else:
+                lines = serial_samples.SerialLines(handle, args.max_line_length)
             for line in lines:
                 # Parse 'line', either with or without timestamp.
                 words = line.strip().split(" ")
@@ -113,6 +120,10 @@ def main():
                              'inactivity of the serial device')
     parser.add_argument('--max-line-length', type=int, default=1024,
                         help='maximum line length')
+    parser.add_argument('--serial-function',
+                        help='custom function that reads from a serial device '
+                             'passed as its argument and yields InfluxDB '
+                             'lines; specified as module.functionname')
 
     parser.add_argument('-H', '--host', default='localhost:8086',
                         help='host and port with InfluxDB to send data to')

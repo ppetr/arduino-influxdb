@@ -60,7 +60,7 @@ class Sample:
             self.tags_line, self.values_line, int(self.timestamp * 1000000000))
 
     def __str__(self):
-        return '{0}(tags_line={1},values_line={2},timestamp={3})'.format(
+        return "{0}(tags_line={1},values_line={2},timestamp={3})".format(
             self.__class__.__name__, self.tags_line, self.values_line,
             self.timestamp)
 
@@ -74,7 +74,7 @@ def SkipUntilNewLine(handle):
     This is needed so that the first sample is read from a complete line.
     """
     logging.debug("Skipping until the end of a new line.")
-    while not handle.readline(4096).endswith('\n'):
+    while not handle.readline(4096).endswith(b"\n"):
         pass
 
 class LineOverflowError(IOError):
@@ -101,7 +101,7 @@ def SerialLines(device_url, baud_rate, read_timeout, max_line_length):
         while True:
             line = handle.readline(max_line_length)
             logging.debug("Received line %r", line)
-            if not line.endswith('\n'):
+            if not line.endswith("b\n"):
                 raise LineOverflowError(line, max_line_length)
             try:
                 yield Sample(line.rstrip())

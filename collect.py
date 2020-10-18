@@ -13,14 +13,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Forwards data from a serial device to an InflixDB database."""
+"""Forwards data from a serial device to an InfluxDB database."""
 
 import argparse
 import logging
 import sys
 import threading
+import time
 
 from retrying import retry
+import serial
 
 import influxdb
 from persistent_queue import persistent_queue
@@ -37,11 +39,22 @@ def ReadLoop(args, queue):
     """Reads samples and stores them in a queue. Retries on IO errors."""
     try:
         logging.debug("Read loop started")
-        for sample in serial_samples.SerialLines(args.device, args.baud_rate,
-                                                 args.read_timeout,
-                                                 args.max_line_length):
-            sample.AddTags(args.tags)
-            queue.put(sample.FormatInfluxLine())
+        with serial.serial_for_url(args.device, baudrate=args.baud_rate,
+                                   timeout=args.read_timeout) as handle:
+            lines = serial_samples.SerialLines(handle, args.max_line_length)
+            for line in lines:
+                # Parse 'line', either with or without timestamp.
+                words = line.strip().split(" ")
+                if len(words) == 2:
+                    (tags, values) = words
+                    timestamp = int(time.time() * 1000000000)
+                elif len(words) == 3:
+                    (tags, values, timestamp) = words
+                    float(timestamp)
+                else:
+                    raise ValueError("Unable to parse line {0!r}".format(line))
+                tags = ",".join(t for t in (tags, args.tags) if t)
+                queue.put("{0} {1} {2:d}".format(tags, values, timestamp))
     except:
         logging.exception("Error, retrying with backoff")
         raise

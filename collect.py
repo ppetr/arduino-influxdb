@@ -133,7 +133,7 @@ def main():
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
     with persistent_queue.Queue(
-        args.queue, wal_autocheckpoint=args.wal_autocheckpoint) as queue:
+            args.queue, wal_autocheckpoint=args.wal_autocheckpoint) as queue:
         reader = threading.Thread(name="read", target=RunAndDie,
                                   args=(ReadLoop, args, queue))
         writer = threading.Thread(name="write", target=RunAndDie,

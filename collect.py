@@ -38,6 +38,7 @@ def RetryOnIOError(exception):
        retry_on_exception=RetryOnIOError)
 def ReadLoop(args, queue):
     """Reads samples and stores them in a queue. Retries on IO errors."""
+    serial_fn = None
     if args.serial_function:
         module, fn_name = args.serial_function.rsplit(".", 1)
         serial_fn = getattr(importlib.import_module(module), fn_name)

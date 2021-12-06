@@ -63,6 +63,7 @@ On Debian the first two can be installed using
 Contributions welcome, please see [Code of Conduct](docs/code-of-conduct.md)
 and [Contributing](docs/contributing.md). Currently I'd like to add:
 
+- [Pytype](https://github.com/google/pytype) annotations.
 - Thorough, proper testing.
 - [systemd](https://en.wikipedia.org/wiki/Systemd) daemon configuration example.
 - Packaging for Debian/Ubuntu.

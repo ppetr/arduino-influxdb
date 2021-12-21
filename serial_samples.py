@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Reads and parses lines from a serial device.
 
 Typically from an Arduino. Lines are expected to follow the InfluxDB's line
@@ -20,9 +19,10 @@ missing).
 """
 
 import logging
+from typing import BinaryIO, Generator
 
 
-def SkipUntilNewLine(handle):
+def SkipUntilNewLine(handle: BinaryIO):
     """Skips data until a new-line character is received.
 
     This is needed so that the first sample is read from a complete line.
@@ -31,9 +31,11 @@ def SkipUntilNewLine(handle):
     while not handle.readline(4096).endswith(b"\n"):
         pass
 
+
 class LineOverflowError(IOError):
     """Thrown when a line longer than a given limit is received."""
-    def __init__(self, line, max_line_length):
+
+    def __init__(self, line: bytes, max_line_length: int):
         if not line:
             message = "Timeout on device inactivity, no data received"
         elif len(line) >= max_line_length:
@@ -43,7 +45,9 @@ class LineOverflowError(IOError):
                 line)
         super().__init__(message)
 
-def SerialLines(handle, max_line_length):
+
+def SerialLines(handle: BinaryIO,
+                max_line_length: int) -> Generator[bytes, None, None]:
     """A generator that yields lines from a configured serial line.
 
     Will never exit normally, only with an exception when there is an error
@@ -51,7 +55,7 @@ def SerialLines(handle, max_line_length):
     """
     SkipUntilNewLine(handle)
     while True:
-        line = handle.readline(max_line_length)
+        line: bytes = handle.readline(max_line_length)
         logging.debug("Received line %r", line)
         if not line.endswith(b"\n"):
             raise LineOverflowError(line, max_line_length)

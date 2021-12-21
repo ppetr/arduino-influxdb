@@ -11,26 +11,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Posts a series of lines in an InfluxDB database."""
 
 import logging
 import http.client
 import urllib.parse
+from typing import FrozenSet, Generator, Sequence
 
 
 class InfluxdbError(IOError):
     """Thrown when posting to an InfluxDB database fails."""
+
     def __init__(self, params, request_body, response):
         # Read the start of the response and include it in the error.
         response_body = response.read(8192)
         super().__init__(
             "Request failed (status='{}', reason='{}', response='{}', "
-            "params='{}'): {}".format(
-                response.status, response.reason, response_body, params,
-                request_body))
+            "params='{}'): {}".format(response.status, response.reason,
+                                      response_body, params, request_body))
 
-def PostSamples(database, host, warn_on_status, lines):
+
+def PostSamples(database: str, host: str, warn_on_status: FrozenSet[int],
+                lines: Sequence[bytes]) -> None:
     """Sends a list of lines to a given InfluxDB database.
 
     Args:
@@ -43,10 +45,10 @@ def PostSamples(database, host, warn_on_status, lines):
     logging.debug("Sending lines: %s", lines)
     params = urllib.parse.urlencode([('db', database), ('precision', 'ns')])
     conn = http.client.HTTPConnection(host)
-    body = '\n'.join(lines) + '\n'
+    body: bytes = b'\n'.join(lines) + b'\n'
     conn.request("POST", "/write?" + params, body=body, headers={})
-    response = conn.getresponse()
-    status = int(response.status)
+    response: http.client.HTTPResponse = conn.getresponse()
+    status: int = int(response.status)
     if status // 100 != 2:
         error = InfluxdbError(params, body, response)
         if status in warn_on_status:

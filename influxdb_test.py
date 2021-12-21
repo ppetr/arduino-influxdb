@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Test posting of data to an InfluxDB database."""
 
 # pylint: disable=missing-docstring,invalid-name
@@ -32,13 +31,14 @@ class TestInfluxDB(unittest.TestCase):
         influxdb.PostSamples("database", "host", [], ["test_line"])
         mock_conn.assert_called_with("host")
         mock_conn().request.assert_called_with(
-            "POST", "/write?db=database&precision=ns", body="test_line\n",
+            "POST",
+            "/write?db=database&precision=ns",
+            body="test_line\n",
             headers={})
 
     @mock.patch('http.client.HTTPConnection')
     def test_post_error(self, mock_conn):
-        mock_conn().getresponse.return_value = mock.Mock(
-            **{"status": "500"})
+        mock_conn().getresponse.return_value = mock.Mock(**{"status": "500"})
         mock_conn().getresponse.return_value.read.return_value = \
             "{explanation:'foo'}"
         with self.assertRaisesRegex(influxdb.InfluxdbError,
@@ -47,13 +47,13 @@ class TestInfluxDB(unittest.TestCase):
 
     @mock.patch('http.client.HTTPConnection')
     def test_post_warning(self, mock_conn):
-        mock_conn().getresponse.return_value = mock.Mock(
-            **{"status": "400"})
+        mock_conn().getresponse.return_value = mock.Mock(**{"status": "400"})
         mock_conn().getresponse.return_value.read.return_value = \
             "{explanation:'foo'}"
         with self.assertLogs(level='WARN') as log:
             influxdb.PostSamples("database", "host", [400], ["test_line"])
         self.assertRegex(log.output[0], "{explanation:'foo'}")
+
 
 if __name__ == '__main__':
     unittest.main()

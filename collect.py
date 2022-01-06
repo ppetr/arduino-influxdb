@@ -88,8 +88,10 @@ def WriteLoop(args, queue: persistent_queue.Queue):
     try:
         influxdb_line: str
         for influxdb_line in queue.get_blocking(tick=60):
-            influxdb.PostSamples(args.database, args.host, warn_on_status,
-                                 [influxdb_line.encode(encoding='UTF-8')])
+            influxdb.PostLines(args.database,
+                               args.host,
+                               [influxdb_line.encode(encoding='UTF-8')],
+                               warn_on_status=warn_on_status)
     except:
         logging.exception("Error, retrying with backoff")
         raise
